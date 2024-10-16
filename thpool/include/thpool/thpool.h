@@ -40,9 +40,8 @@ public:
 		}
 	}
 
-	void  push_rewu_tasks(task* taskone)
+	void  push_rewu_tasks(task taskone)
 	{
-
 		std::unique_lock<std::mutex> ulock(this->mtx);
 		this->tasks.push(taskone);
 		ulock.unlock();
@@ -56,7 +55,7 @@ public:
 			{
 				return;
 			}
-			task* taskone = nullptr;
+			task * taskone = nullptr;
 			{
 				std::unique_lock<std::mutex> lock(this->mtx);
 				while (tasks.empty())
@@ -66,22 +65,24 @@ public:
 				}
 				if (tpfg)
 				{
-					taskone = this->tasks.front();
+					taskone = &this->tasks.front();
 					this->tasks.pop();
+
 				}
-				if (taskone != nullptr)
-				{
+				if(taskone != nullptr) {
 
 					taskone->run();
 
 				}
+
 			}
+	
 		}
 	}
 
 private:
 	std::vector<std::thread> threads;
-	std::queue<task*> tasks;
+	std::queue<task> tasks;
 	std::atomic_bool tpfg;
 	std::condition_variable cv;
 	std::mutex mtx;

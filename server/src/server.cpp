@@ -77,8 +77,27 @@ int Server::server_run(int lfd) {
 			if(curfd == lfd) {
 				server_accept(curfd);
 			} else {
-				auto _task = std::make_shared<task>(curfd, epfd);
-				thpool.push_rewu_tasks(_task.get());
+				
+				char buffer[2048];
+				ssize_t bytesRead = read(curfd, buffer, sizeof(buffer));
+				if(bytesRead < 0) {
+					perror("read error");
+					close(curfd); // Close the connection on error
+					continue;
+				}
+				std::string str(buffer);
+				//std::cout << "Server str \n" << str << std::endl;	
+				auto _task = new task(curfd, epfd, str);
+				
+				_task->run();
+				//std::thread t1([=] {
+					
+				//});
+
+				//t1.detach();
+				//xtask.run();
+				//thpool.push_rewu_tasks(tasks.front());
+				
 			}
 		}
 	}

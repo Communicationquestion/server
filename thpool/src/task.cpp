@@ -2,7 +2,7 @@
 #include<sys/epoll.h>
 #include<unistd.h>
 task::~task() {
-	
+
 	try {
 		if(epoll_ctl(_epfd, EPOLL_CTL_DEL, cfd, nullptr) == -1) {
 			perror("epoll_ctl: EPOLL_CTL_DEL");
@@ -14,12 +14,22 @@ task::~task() {
 	close(cfd);
 }
 
-int task::test(){
+int task::test() {
 
-return 0;
+	return 0;
 }
 
 void task::run() {
-	Http http(cfd);
+	
+	
+	std::cout << "cfd: " << cfd <<"\n"<< "_epfd: " << _epfd << std::endl;
+
+	std::cout << "task run \n" << req_str << std::endl;
+
+
+
+	Http http(cfd,req_str);
+
+
 	http.accept_request();
 }

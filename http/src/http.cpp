@@ -2,17 +2,31 @@
 #include <http/header.h>
 #include <fstream>
 void Http::parse_request() {
-	std::istringstream request_stream(buffer);
-	request_stream >> method;        // 获取请求方法
-	request_stream >> url;           // 获取请求 URL
-	request_stream >> http_version;  // 获取 HTTP 版本
+	std::cout << "parse_request: " << req << std::endl;
+	request.parse(req);
+	request.print();
+	std::tuple<std::string ,std::string> pars = request.get_req_pars();
+	method = std::get<0>(pars);
+	url = std::get<1>(pars);
+	path = "/htdocs" + url;
+	std::cout << "path\n" << path << std::endl;
 }
 
 int Http::accept_request() {
 
 
+	parse_request();
+	if (url=="/")
+	{
+		url = path + "index.html";
+	} else {
+		url = path + url;
+	}
+	url = "/home/build/server/index.html";
+	std::cout << "url\n" << url << std::endl;
 
-
+	
+	response_requests();
 
 	return 0;
 }
@@ -23,10 +37,39 @@ int Http::response_requests() {
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
+		HttpResponse resheader(200);
+
 		if(parse_query_params(url).empty()) {
 			//to do
-			
-			//不需要执行程序
+
+			//请求文件类型
+			HeaderType<std::string, std::string> htype;
+			std::string heaadertype = htype.findtype(url);
+
+			//设置header.参数
+			resheader.set_header_ctype(heaadertype); //类型
+													 //长度
+			if(htype.type_binary(url)) {
+				// get binary data
+				// 不需要设置长度
+
+			} else {
+			    // get txt data
+				//获取body
+				res = get_txt_data();
+				//设置长度
+				resheader.set_header_cLength(res);
+			}
+
+
+			// 发送header和body
+			try {
+				resheader.send_header(client);
+				send(client, res.c_str(), res.size(), 0);
+			} catch(const std::exception& e) {
+				e.what();
+			}
+//不需要执行程序
 		} else {
 			//需要执行程序
 		}
@@ -36,18 +79,20 @@ int Http::response_requests() {
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
+		HttpResponse resheader(200);
+
 		if(parse_query_params(url).empty()) {
 			//不需要执行程序
 		} else {
 			//需要执行程序
 			//to do
-		
+
 		}
 		return 1;
 	} else {
-		HttpResponse resheader(404);
-		resheader.set_body("not the method");
-		resheader.send_header(client);
+		//HttpResponse resheader(404);
+		
+		//resheader.send_header(client);
 		return -1;
 	}
 
@@ -66,14 +111,23 @@ int Http::Response_with_parameters() {
 
 
 bool Http::file_existence() {
-	if(url == "/") {
-		path = path+"index.html"; 
-	}
-	std::ifstream file(path);
+
+	std::ifstream file(url);
 	if(!file) {
 		return 0;
 	}
 	return 1;
+}
+
+std::string Http::get_txt_data() {
+	std::ifstream file(url);
+	if(!file) {
+		return "Error: could not open file.";
+	}
+
+	std::string content((std::istreambuf_iterator<char>(file)),
+						std::istreambuf_iterator<char>());
+	return content;
 }
 
 std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string& query) {

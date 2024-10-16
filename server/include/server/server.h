@@ -22,8 +22,9 @@ public:
 private:
   struct sockaddr_in servaddr;
   int epfd;
-  
+ 
+  std::queue<task> tasks;
   struct epoll_event evs[1024];
-  threadpool thpool{5};
+  threadpool thpool{4};
   
 };
