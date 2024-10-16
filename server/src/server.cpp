@@ -79,7 +79,7 @@ int Server::server_run(int lfd) {
 			} else {
 				
 				char buffer[2048];
-				ssize_t bytesRead = recv(curfd, buffer, sizeof(buffer),0);
+				ssize_t bytesRead = recv(curfd, buffer, sizeof(buffer), 0);
 				if(bytesRead < 0) {
 					perror("read error");
 					close(curfd); // Close the connection on error
@@ -89,12 +89,12 @@ int Server::server_run(int lfd) {
 				//std::cout << "Server str \n" << str << std::endl;	
 				auto _task = new task(curfd, epfd, str);
 				
-				_task->run();
-				//std::thread t1([=] {
-					
-				//});
+			
+				std::thread t1([=] {
+					_task->run();
+				});
 
-				//t1.detach();
+				t1.detach();
 				//xtask.run();
 				//thpool.push_rewu_tasks(tasks.front());
 				

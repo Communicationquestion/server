@@ -42,6 +42,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
 template <class T, class N>
 class HeaderType
 {
@@ -131,6 +132,7 @@ public:
 	int response_without_parameters();
 	int Response_with_parameters();
 	bool file_existence();
+	int catbinary();
 	std::string get_txt_data();
 	int send_binary(std::string url);
 	std::unordered_map<std::string, std::string> parse_query_params(const std::string &query);

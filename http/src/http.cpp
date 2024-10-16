@@ -2,124 +2,92 @@
 #include <http/header.h>
 #include <fstream>
 #include <string.h>
-
-void Http::parse_request()
-{
+void Http::parse_request() {
 	std::cout << "parse_request: \n"
-			  << req << std::endl;
+		<< req << std::endl;
 	request.parse(req);
 	request.print();
 	std::tuple<std::string, std::string> pars = request.get_req_pars();
 	method = std::get<0>(pars);
 	url = std::get<1>(pars);
-
 }
-
-int Http::accept_request()
-{
+int Http::accept_request() {
 	std::string pwd(getcwd(NULL, 0));
 	parse_request();
-	if (url == "/")
-	{
-		url = pwd + "/htdocs" + url + "index.html";
+	std::string fleod = "/b";
+	if(url == "/") {
+		url = pwd + fleod + url + "index.html";
+	} else {
+		url = pwd + fleod + url;
 	}
-	else
-	{
-		url = pwd +"/htdocs"+ url;
-	}
-	
+
 	std::cout << "url\n"
-			  << url << std::endl;
-
+		<< url << std::endl;
 	response_requests();
-
 	return 0;
 }
-
-int Http::response_requests()
-{
-	if ("GET" == method)
-	{
-		if (!file_existence())
-		{
+int Http::response_requests() {
+	if("GET" == method) {
+		if(!file_existence()) {
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
 		std::cout << "find file\n";
 		HttpResponse resheader(200);
-
-		if (parse_query_params(url).empty())
-		{
-
+		if(parse_query_params(url).empty()) {
 			HeaderType<std::string, std::string> htype;
 			std::string headertype = htype.findtype(url);
-
 			std::cout << "headertype \n"
-					  << headertype << std::endl;
-			if (headertype == "erro")
-			{
+				<< headertype << std::endl;
+			if(headertype == "erro") {
 				return -1;
 			}
 			resheader.set_header_ctype(headertype);
-
-			if (htype.type_binary(url))
-			{
-				try
-				{
+			if(htype.type_binary(url)) {
+				try {
 					resheader.send_header(client);
 					send_binary(url);
-				}
-				catch (const std::exception &e)
-				{
+					//catbinary();
+					std::cout << "send : " << headertype << std::endl;
+				} catch(const std::exception& e) {
 					std::cout << headertype << "fail \n";
 					e.what();
 				}
-			}
-			else
-			{
+			} else {
 				res = get_txt_data();
-
 				resheader.set_header_cLength(res);
-
-				try
-				{
+				try {
 					resheader.send_header(client);
 					send(client, res.c_str(), res.size(), MSG_NOSIGNAL);
-				}
-				catch (const std::exception &e)
-				{
+					std::cout << "send : " << headertype << std::endl;
+				} catch(const std::exception& e) {
 					std::cout << headertype << "fail \n";
 					e.what();
 				}
 			}
-		}
-		else
-		{
+		} else {
 
 		}
 		return 1;
-	}
-	else if ("POST" == method)
-	{
-		if (!file_existence())
-		{
+	} else if("POST" == method) {
+		if(!file_existence()) {
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
 		HttpResponse resheader(200);
 
-		if (parse_query_params(url).empty())
-		{
-		}
-		else
-		{
+		if(parse_query_params(url).empty()) {
+
+		} else {
+
 		}
 		return 1;
-	}
-	else
-	{
-		// HttpResponse resheader(404);
-
+	} else {
+		HttpResponse resheader(404);
+		resheader.set_header_ctype("Content-Type: text/plain\r\n");
+		resheader.send_header(client);
+		std::string e{"erorr method"};
+		send(client, e.c_str(), e.size(), MSG_NOSIGNAL);
 		// resheader.send_header(client);
 		return -1;
 	}
@@ -127,33 +95,53 @@ int Http::response_requests()
 	return 0;
 }
 
-int Http::response_without_parameters()
-{
+int Http::response_without_parameters() {
 
 	return 0;
 }
 
-int Http::Response_with_parameters()
-{
+int Http::Response_with_parameters() {
 	return 0;
 }
 
-bool Http::file_existence()
-{
+bool Http::file_existence() {
 
 	std::ifstream file(url);
-	if (!file)
-	{
+	if(!file) {
 		return 0;
 	}
 	return 1;
 }
 
-std::string Http::get_txt_data()
-{
+
+int Http::catbinary() {
+	std::cout << "enter sendfile" << std::endl;
+
+	int fd = open(url.c_str(), O_RDONLY);
+	if(fd == -1)
+		printf("not found file\n");
+	struct stat stat = {};
+	int ret = fstat(fd, &stat);
+	if(ret == -1 || stat.st_size < 0) {
+		return 0;
+	}
+	try {
+		signal(SIGPIPE, SIG_IGN);
+		ret = sendfile(client, fd, NULL, stat.st_size);
+		if(ret <= 0) {
+			return 0;
+		}
+	} catch(const std::exception& e) {
+		printf("errrno is:%d", errno);
+		std::cout << "Exception: " << e.what();
+	}
+	std::cout << "enter sendfile over" << std::endl;
+	return 0;
+}
+
+std::string Http::get_txt_data() {
 	std::ifstream file(url);
-	if (!file)
-	{
+	if(!file) {
 		return "Error: could not open file.";
 	}
 
@@ -162,7 +150,7 @@ std::string Http::get_txt_data()
 	return content;
 }
 
-int Http::send_binary( std::string url) {
+int Http::send_binary(std::string url) {
 	std::ifstream file(url, std::ios::binary | std::ios::ate);
 	if(!file) {
 		std::cerr << "无法打开文件: " << url << std::endl;
@@ -175,9 +163,7 @@ int Http::send_binary( std::string url) {
 	const size_t buffer_size = 8192; // 8KB buffer
 	char buffer[buffer_size];
 
-	// 设置套接字为非阻塞模式
-	int flags = fcntl(client, F_GETFL, 0);
-	fcntl(client, F_SETFL, flags | O_NONBLOCK);
+
 
 	size_t total_sent = 0;
 	while(total_sent < file_size) {
@@ -212,22 +198,18 @@ int Http::send_binary( std::string url) {
 
 	std::cout << "成功发送 " << total_sent << " 字节的数据!" << std::endl;
 
-	// 恢复套接字的阻塞模式
-	fcntl(client, F_SETFL, flags);
+
 
 	return 0;
 }
-std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string &query)
-{
+std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string& query) {
 	std::unordered_map<std::string, std::string> params;
 	std::stringstream ss(query);
 	std::string key_value;
 
-	while (std::getline(ss, key_value, '&'))
-	{
+	while(std::getline(ss, key_value, '&')) {
 		auto pos = key_value.find('=');
-		if (pos != std::string::npos)
-		{
+		if(pos != std::string::npos) {
 			std::string key = key_value.substr(0, pos);
 			std::string value = key_value.substr(pos + 1);
 			params[key] = value;
