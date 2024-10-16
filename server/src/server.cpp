@@ -79,7 +79,7 @@ int Server::server_run(int lfd) {
 			} else {
 				
 				char buffer[2048];
-				ssize_t bytesRead = read(curfd, buffer, sizeof(buffer));
+				ssize_t bytesRead = recv(curfd, buffer, sizeof(buffer),0);
 				if(bytesRead < 0) {
 					perror("read error");
 					close(curfd); // Close the connection on error

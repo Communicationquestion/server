@@ -20,25 +20,24 @@ public:
 		std::istringstream requestStream(request);
 		std::string line;
 
-		// 解析请求行
+		
 		if(std::getline(requestStream, line)) {
 			std::istringstream requestLine(line);
 			requestLine >> method >> path >> version;
 		}
 
-		// 解析头部
 		while(std::getline(requestStream, line) && line != "\r") {
 			size_t pos = line.find(":");
 			if(pos != std::string::npos) {
 				std::string key = line.substr(0, pos);
 				std::string value = line.substr(pos + 1);
-				// 去掉value前后的空白
+				
 				value.erase(0, value.find_first_not_of(" \t"));
 				headers[key] = value;
 			}
 		}
 
-		// 解析请求体（如果有的话）
+	
 		if(requestStream.peek() != std::ifstream::traits_type::eof()) {
 			body.assign((std::istreambuf_iterator<char>(requestStream)), std::istreambuf_iterator<char>());
 		}
@@ -65,7 +64,7 @@ class HttpResponse {
 public:
 	HttpResponse(int status_code)
 		: status_code_(status_code) {
-		// 默认内容类型为文本
+		
 		set_header_ctype("text/plain");
 	}
 
@@ -80,12 +79,10 @@ public:
 
 
 	void send_header(int client_socket) {
-		// 响应状态行
 		std::string response = "HTTP/1.1 " + std::to_string(status_code_) + " " + get_status_message(status_code_) + "\r\n";
-		response += headers_; // 添加所有响应头
-		response += "\r\n"; // 头部结束
-		// 发送响应
-		send(client_socket, response.c_str(), response.size(), 0);
+		response += headers_; 
+		response += "\r\n"; 
+		send(client_socket, response.c_str(), response.size(), MSG_NOSIGNAL);
 	}
 
 private:

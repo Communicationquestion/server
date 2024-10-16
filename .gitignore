@@ -9,7 +9,8 @@
 *.user
 *.userosscache
 *.sln.docstates
-
+htdocs
+index.html
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -209,7 +210,8 @@ PublishScripts/
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
-
+build
+.vscode
 # Microsoft Azure Emulator
 ecf/
 rcf/

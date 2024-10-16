@@ -1,127 +1,159 @@
-#include<http/http.h>
+#include <http/http.h>
 #include <http/header.h>
 #include <fstream>
-void Http::parse_request() {
-	std::cout << "parse_request: " << req << std::endl;
+#include <string.h>
+
+void Http::parse_request()
+{
+	std::cout << "parse_request: \n"
+			  << req << std::endl;
 	request.parse(req);
 	request.print();
-	std::tuple<std::string ,std::string> pars = request.get_req_pars();
+	std::tuple<std::string, std::string> pars = request.get_req_pars();
 	method = std::get<0>(pars);
 	url = std::get<1>(pars);
-	path = "/htdocs" + url;
-	std::cout << "path\n" << path << std::endl;
+
 }
 
-int Http::accept_request() {
-
-
+int Http::accept_request()
+{
+	std::string pwd(getcwd(NULL, 0));
 	parse_request();
-	if (url=="/")
+	if (url == "/")
 	{
-		url = path + "index.html";
-	} else {
-		url = path + url;
+		url = pwd + "/htdocs" + url + "index.html";
 	}
-	url = "/home/build/server/index.html";
-	std::cout << "url\n" << url << std::endl;
-
+	else
+	{
+		url = pwd +"/htdocs"+ url;
+	}
 	
+	std::cout << "url\n"
+			  << url << std::endl;
+
 	response_requests();
 
 	return 0;
 }
 
-int Http::response_requests() {
-	if("GET" == method) {
-		if(!file_existence()) {
+int Http::response_requests()
+{
+	if ("GET" == method)
+	{
+		if (!file_existence())
+		{
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
+		std::cout << "find file\n";
 		HttpResponse resheader(200);
 
-		if(parse_query_params(url).empty()) {
-			//to do
+		if (parse_query_params(url).empty())
+		{
 
-			//ÇëÇóÎÄ¼şÀàĞÍ
 			HeaderType<std::string, std::string> htype;
-			std::string heaadertype = htype.findtype(url);
+			std::string headertype = htype.findtype(url);
 
-			//ÉèÖÃheader.²ÎÊı
-			resheader.set_header_ctype(heaadertype); //ÀàĞÍ
-													 //³¤¶È
-			if(htype.type_binary(url)) {
-				// get binary data
-				// ²»ĞèÒªÉèÖÃ³¤¶È
+			std::cout << "headertype \n"
+					  << headertype << std::endl;
+			if (headertype == "erro")
+			{
+				return -1;
+			}
+			resheader.set_header_ctype(headertype);
 
-			} else {
-			    // get txt data
-				//»ñÈ¡body
+			if (htype.type_binary(url))
+			{
+				try
+				{
+					resheader.send_header(client);
+					send_binary(url);
+				}
+				catch (const std::exception &e)
+				{
+					std::cout << headertype << "fail \n";
+					e.what();
+				}
+			}
+			else
+			{
 				res = get_txt_data();
-				//ÉèÖÃ³¤¶È
+
 				resheader.set_header_cLength(res);
-			}
 
-
-			// ·¢ËÍheaderºÍbody
-			try {
-				resheader.send_header(client);
-				send(client, res.c_str(), res.size(), 0);
-			} catch(const std::exception& e) {
-				e.what();
+				try
+				{
+					resheader.send_header(client);
+					send(client, res.c_str(), res.size(), MSG_NOSIGNAL);
+				}
+				catch (const std::exception &e)
+				{
+					std::cout << headertype << "fail \n";
+					e.what();
+				}
 			}
-//²»ĞèÒªÖ´ĞĞ³ÌĞò
-		} else {
-			//ĞèÒªÖ´ĞĞ³ÌĞò
+		}
+		else
+		{
+
 		}
 		return 1;
-	} else if("POST" == method) {
-		if(!file_existence()) {
+	}
+	else if ("POST" == method)
+	{
+		if (!file_existence())
+		{
 			std::cout << "file not found" << std::endl;
 			return -1;
 		}
 		HttpResponse resheader(200);
 
-		if(parse_query_params(url).empty()) {
-			//²»ĞèÒªÖ´ĞĞ³ÌĞò
-		} else {
-			//ĞèÒªÖ´ĞĞ³ÌĞò
-			//to do
-
+		if (parse_query_params(url).empty())
+		{
+		}
+		else
+		{
 		}
 		return 1;
-	} else {
-		//HttpResponse resheader(404);
-		
-		//resheader.send_header(client);
+	}
+	else
+	{
+		// HttpResponse resheader(404);
+
+		// resheader.send_header(client);
 		return -1;
 	}
 
 	return 0;
 }
 
-
-int Http::response_without_parameters() {
+int Http::response_without_parameters()
+{
 
 	return 0;
 }
 
-int Http::Response_with_parameters() {
+int Http::Response_with_parameters()
+{
 	return 0;
 }
 
-
-bool Http::file_existence() {
+bool Http::file_existence()
+{
 
 	std::ifstream file(url);
-	if(!file) {
+	if (!file)
+	{
 		return 0;
 	}
 	return 1;
 }
 
-std::string Http::get_txt_data() {
+std::string Http::get_txt_data()
+{
 	std::ifstream file(url);
-	if(!file) {
+	if (!file)
+	{
 		return "Error: could not open file.";
 	}
 
@@ -130,19 +162,76 @@ std::string Http::get_txt_data() {
 	return content;
 }
 
-std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string& query) {
-	std::unordered_map<std::string, std::string> params; // ´´½¨Ò»¸ö¿ÕµÄunordered_mapÓÃÓÚ´æ´¢²ÎÊı
-	std::stringstream ss(query); // Ê¹ÓÃ×Ö·û´®Á÷À´½âÎö²éÑ¯×Ö·û´®
+int Http::send_binary( std::string url) {
+	std::ifstream file(url, std::ios::binary | std::ios::ate);
+	if(!file) {
+		std::cerr << "æ— æ³•æ‰“å¼€æ–‡ä»¶: " << url << std::endl;
+		return 1;
+	}
+
+	std::streamsize file_size = file.tellg();
+	file.seekg(0, std::ios::beg);
+
+	const size_t buffer_size = 8192; // 8KB buffer
+	char buffer[buffer_size];
+
+	// è®¾ç½®å¥—æ¥å­—ä¸ºéé˜»å¡æ¨¡å¼
+	int flags = fcntl(client, F_GETFL, 0);
+	fcntl(client, F_SETFL, flags | O_NONBLOCK);
+
+	size_t total_sent = 0;
+	while(total_sent < file_size) {
+		size_t remaining = file_size - total_sent;
+		size_t chunk_size = std::min(remaining, buffer_size);
+
+		file.read(buffer, chunk_size);
+		if(file.gcount() != chunk_size) {
+			std::cerr << "è¯»å–æ–‡ä»¶å¤±è´¥!" << std::endl;
+			return 1;
+		}
+
+		ssize_t sent_bytes = 0;
+		while(sent_bytes < chunk_size) {
+			ssize_t result = send(client, buffer + sent_bytes, chunk_size - sent_bytes, MSG_NOSIGNAL);
+			if(result == -1) {
+				if(errno == EINTR)
+					continue; // è¢«ä¿¡å·ä¸­æ–­ï¼Œé‡è¯•
+				if(errno == EAGAIN || errno == EWOULDBLOCK) {
+					// èµ„æºæš‚æ—¶ä¸å¯ç”¨ï¼Œç­‰å¾…ä¸€æ®µæ—¶é—´åé‡è¯•
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					continue;
+				}
+				std::cerr << "å‘é€æ•°æ®å¤±è´¥: " << strerror(errno) << std::endl;
+				return 1;
+			}
+			sent_bytes += result;
+		}
+
+		total_sent += sent_bytes;
+	}
+
+	std::cout << "æˆåŠŸå‘é€ " << total_sent << " å­—èŠ‚çš„æ•°æ®!" << std::endl;
+
+	// æ¢å¤å¥—æ¥å­—çš„é˜»å¡æ¨¡å¼
+	fcntl(client, F_SETFL, flags);
+
+	return 0;
+}
+std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string &query)
+{
+	std::unordered_map<std::string, std::string> params;
+	std::stringstream ss(query);
 	std::string key_value;
 
-	// °´ '&' ·Ö¸ôÃ¿¸ö²ÎÊı
-	while(std::getline(ss, key_value, '&')) {
-		auto pos = key_value.find('='); // ²éÕÒ '=' ×Ö·û
-		if(pos != std::string::npos) { // Èç¹ûÕÒµ½ÁË '='
-			std::string key = key_value.substr(0, pos); // ÌáÈ¡²ÎÊıÃû³Æ
-			std::string value = key_value.substr(pos + 1); // ÌáÈ¡²ÎÊıÖµ
-			params[key] = value; // ½«²ÎÊı´æ´¢µ½unordered_mapÖĞ
+	while (std::getline(ss, key_value, '&'))
+	{
+		auto pos = key_value.find('=');
+		if (pos != std::string::npos)
+		{
+			std::string key = key_value.substr(0, pos);
+			std::string value = key_value.substr(pos + 1);
+			params[key] = value;
 		}
 	}
-	return params; // ·µ»Ø´æ´¢ËùÓĞ²ÎÊıµÄunordered_map
+	return params;
 }
