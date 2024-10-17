@@ -14,7 +14,7 @@ void Http::parse_request() {
 int Http::accept_request() {
 	std::string pwd(getcwd(NULL, 0));
 	parse_request();
-	std::string fleod = "/b";
+	std::string fleod = "/htdocs";
 	if(url == "/") {
 		url = pwd + fleod + url + "index.html";
 	} else {
@@ -43,30 +43,35 @@ int Http::response_requests() {
 				return -1;
 			}
 			resheader.set_header_ctype(headertype);
+
 			if(htype.type_binary(url)) {
-				try {
-					resheader.send_header(client);
-					send_binary(url);
-					//catbinary();
-					std::cout << "send : " << headertype << std::endl;
-				} catch(const std::exception& e) {
+
+				resheader.send_header(client);
+
+				int sfd = send_binary(url);
+
+
+				std::cout << "send : " << headertype << std::endl;
+				if(sfd == -1) {
 					std::cout << headertype << "fail \n";
-					e.what();
+					return -1;
 				}
+
 			} else {
 				res = get_txt_data();
 				resheader.set_header_cLength(res);
-				try {
-					resheader.send_header(client);
-					send(client, res.c_str(), res.size(), MSG_NOSIGNAL);
-					std::cout << "send : " << headertype << std::endl;
-				} catch(const std::exception& e) {
+
+				resheader.send_header(client);
+				int sfd = send(client, res.c_str(), res.size(), MSG_NOSIGNAL);
+
+				std::cout << "send : " << headertype << std::endl;
+				if(sfd == -1) {
 					std::cout << headertype << "fail \n";
-					e.what();
+					return -1;
 				}
 			}
 		} else {
-
+			return -1;
 		}
 		return 1;
 	} else if("POST" == method) {
@@ -118,23 +123,26 @@ int Http::catbinary() {
 	std::cout << "enter sendfile" << std::endl;
 
 	int fd = open(url.c_str(), O_RDONLY);
-	if(fd == -1)
+	if(fd == -1) {
 		printf("not found file\n");
+		return -1;
+	}
+
+
 	struct stat stat = {};
 	int ret = fstat(fd, &stat);
 	if(ret == -1 || stat.st_size < 0) {
-		return 0;
+		return -1;
 	}
-	try {
-		signal(SIGPIPE, SIG_IGN);
-		ret = sendfile(client, fd, NULL, stat.st_size);
-		if(ret <= 0) {
-			return 0;
-		}
-	} catch(const std::exception& e) {
+
+	signal(SIGPIPE, SIG_IGN);
+	ret = sendfile(client, fd, NULL, stat.st_size);
+	if(ret <= 0) {
 		printf("errrno is:%d", errno);
-		std::cout << "Exception: " << e.what();
+		return -1;
 	}
+
+
 	std::cout << "enter sendfile over" << std::endl;
 	return 0;
 }
@@ -154,7 +162,7 @@ int Http::send_binary(std::string url) {
 	std::ifstream file(url, std::ios::binary | std::ios::ate);
 	if(!file) {
 		std::cerr << "无法打开文件: " << url << std::endl;
-		return 1;
+		return -1;
 	}
 
 	std::streamsize file_size = file.tellg();

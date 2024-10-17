@@ -8,63 +8,47 @@
 #include <unistd.h>
 #include <thpool/task.h>
 
-
-class threadpool
-{
+class threadpool {
 public:
-	threadpool(int count) : tpfg(true)
-	{
-		for (int i = 0; i < count; i++)
-		{
+	threadpool(int count) : tpfg(true) {
+		for(int i = 0; i < count; i++) {
 			threads.emplace_back(&threadpool::work, this);
 		}
 	}
-	~threadpool()
-	{
+	~threadpool() {
 		threadstop();
 	}
-	void threadstart()
-	{
+	void threadstart() {
 		tpfg = true;
 	}
-	void threadstop()
-	{
+	void threadstop() {
 		tpfg = false;
 		cv.notify_all();
-		for (auto& th : threads)
-		{
-			if (th.joinable())
-			{
+		for(auto& th : threads) {
+			if(th.joinable()) {
 				th.join();
 			}
 		}
 	}
 
-	void  push_rewu_tasks(task taskone)
-	{
+	void  push_rewu_tasks(task taskone) {
 		std::unique_lock<std::mutex> ulock(this->mtx);
 		this->tasks.push(taskone);
 		ulock.unlock();
 		this->cv.notify_one();
 	}
-	void work()
-	{
-		while (true)
-		{
-			if (!tpfg)
-			{
+	void work() {
+		while(true) {
+			if(!tpfg) {
 				return;
 			}
-			task * taskone = nullptr;
+			task* taskone = nullptr;
 			{
 				std::unique_lock<std::mutex> lock(this->mtx);
-				while (tasks.empty())
-				{
-					cv.wait(lock, [&]
-						{ return !tasks.empty() || !tpfg; });
+				while(tasks.empty()) {
+					cv.wait(lock, [&] { return !tasks.empty() || !tpfg; });
 				}
-				if (tpfg)
-				{
+				if(tpfg) {
 					taskone = &this->tasks.front();
 					this->tasks.pop();
 
@@ -76,7 +60,7 @@ public:
 				}
 
 			}
-	
+
 		}
 	}
 

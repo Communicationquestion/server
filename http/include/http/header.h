@@ -75,24 +75,23 @@ public:
 
 		headers_ += "Content-Length: " + std::to_string(value.size()) + "\r\n";
 	}
-
-
-
 	void send_header(int client_socket) {
 		std::string response = "HTTP/1.1 " + std::to_string(status_code_) + " " + get_status_message(status_code_) + "\r\n";
 		response += "Cache-Control: max-age=31536000, immutable\r\n";
 		response += headers_;
-		response += "X-Content-Type-Options: nosniff\r\n";
+		//response += "X-Content-Type-Options: nosniff\r\n";
 		response += "\r\n";
 		std::cout << "http_header\n" << response << std::endl;
-		send(client_socket, response.c_str(), response.size(), MSG_NOSIGNAL);
+		int sfd = send(client_socket, response.c_str(), response.size(), MSG_NOSIGNAL);
+		if(sfd < 0) {
+			perror("send");
+			return;
+		}
 	}
 
 private:
 	int status_code_;
 	std::string headers_;
-
-
 	std::string get_status_message(int code) {
 		switch(code) {
 			case 200: return "OK";

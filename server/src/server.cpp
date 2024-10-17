@@ -88,16 +88,7 @@ int Server::server_run(int lfd) {
 				std::string str(buffer);
 				//std::cout << "Server str \n" << str << std::endl;	
 				auto _task = new task(curfd, epfd, str);
-				
-			
-				std::thread t1([=] {
-					_task->run();
-				});
-
-				t1.detach();
-				//xtask.run();
-				//thpool.push_rewu_tasks(tasks.front());
-				
+				_task->run();
 			}
 		}
 	}
