@@ -130,7 +130,7 @@ public:
 	int accept_request();
 	int response_requests();
 	int response_without_parameters();
-	int Response_with_parameters();
+	int Response_with_parameters(int client, std::string res);
 	bool file_existence();
 	int catbinary();
 	std::string get_txt_data();

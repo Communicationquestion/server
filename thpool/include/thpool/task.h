@@ -1,13 +1,23 @@
 #pragma once
 #include<http/http.h>
-class task
+#include<thpool/threadpool.h>
+class MyTask : public Task
+        
 {
 public:
-    task(int curfd, int epfd,std::string &str) :cfd(curfd), _epfd(epfd),req_str(str) {};
-    ~task();
-     int test();
+    MyTask( int curfd, int epfd,std::string &str) :cfd(curfd), _epfd(epfd),req_str(str) {};
 
-	 void run();
+    ~MyTask();
+    bool operator==(const Task* task) {
+		if(this == task) {
+			return true;
+		}
+		const MyTask* p = dynamic_cast<const MyTask*>(task);
+		return p != nullptr && this->cfd == p->cfd;
+	};
+     int test();
+    
+	 void run() ;
 
 private:
 

@@ -8,23 +8,25 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <thpool/thpool.h>
+#include <thpool/task.h>
+#include <queue>
 class Server {
 public:
-  Server(){
-    
-    thpool.threadstart();
-  }
-  int initserver(int _port);
-  int server_run(int lfd);
-  void server_accept(int curfd);
+	Server() {
+
+
+	}
+	int initserver(int _port);
+	int server_run(int lfd);
+	void server_accept(int curfd);
 
 private:
-  struct sockaddr_in servaddr;
-  int epfd;
- 
-  std::queue<task> tasks;
-  struct epoll_event evs[1024];
-  threadpool thpool{4};
-  
+	struct sockaddr_in servaddr;
+	int epfd;
+
+	std::queue<MyTask> tasks;
+	struct epoll_event evs[1024];
+	ThreadPool tp;
+
+
 };

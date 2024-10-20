@@ -1,7 +1,10 @@
 #include <thpool/task.h>
 #include<sys/epoll.h>
 #include<unistd.h>
-task::~task() {
+#include<future>
+#include <functional>
+std::mutex qmutex;
+MyTask::~MyTask() {
 
 	try {
 		if(epoll_ctl(_epfd, EPOLL_CTL_DEL, cfd, nullptr) == -1) {
@@ -14,22 +17,40 @@ task::~task() {
 	close(cfd);
 }
 
-int task::test() {
+int MyTask::test() {
 
 	return 0;
 }
 
-void task::run() {
-	
-	
-	std::cout << "cfd: " << cfd <<"\n"<< "_epfd: " << _epfd << std::endl;
+void MyTask::run()  {
+
+
+	std::cout << "cfd: " << cfd << "\n" << "_epfd: " << _epfd << std::endl;
 
 	std::cout << "task run \n" << req_str << std::endl;
 
 
+	
+	//std::this_thread::sleep_for(std::chrono::seconds(1));
+	//auto future = std::async(std::launch::async, [=]() {
+	
 
-	Http http(cfd,req_str);
+	
+		//std::lock_guard<std::mutex> lock(qmutex);
+
+		Http http(cfd, req_str);
+		http.accept_request();
+		
+
+	
+		
+	
+	//});
+	//future.share();
 
 
-	http.accept_request();
+
+	return ;
+
+
 }

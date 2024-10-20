@@ -1,5 +1,5 @@
 
-#include <thpool/thpool.h>
+
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -10,7 +10,10 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <thpool/task.h>
+#include <future>
 
+#include <thpool/threadpool.h>
+ 
 int Server::initserver(int _port) {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0) {
@@ -67,6 +70,12 @@ int Server::server_run(int lfd) {
 		perror("epoll_ctl");
 		exit(0);
 	}
+	std::vector<std::future<int>> futures;
+	std::future<int> future;
+	std::thread t2;
+	std::vector<std::thread> v;
+	
+	//ThreadPool tp;
 	int size = sizeof(evs) / sizeof(struct epoll_event);
 	while(1) {
 		int num = epoll_wait(epfd, evs, size, -1);
@@ -77,7 +86,7 @@ int Server::server_run(int lfd) {
 			if(curfd == lfd) {
 				server_accept(curfd);
 			} else {
-				
+
 				char buffer[2048];
 				ssize_t bytesRead = recv(curfd, buffer, sizeof(buffer), 0);
 				if(bytesRead < 0) {
@@ -86,12 +95,24 @@ int Server::server_run(int lfd) {
 					continue;
 				}
 				std::string str(buffer);
+				MyTask _task(curfd, epfd, str);
 				//std::cout << "Server str \n" << str << std::endl;	
-				auto _task = new task(curfd, epfd, str);
-				_task->run();
+			
+				_task.run();
+
+	
+				
 			}
+
+
 		}
+
+		
+
+
 	}
+	//futures.push_back(std::move(future));
+	//tp.join();
 }
 
 int main() {

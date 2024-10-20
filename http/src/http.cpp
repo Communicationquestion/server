@@ -12,9 +12,10 @@ void Http::parse_request() {
 	url = std::get<1>(pars);
 }
 int Http::accept_request() {
+	//std::this_thread::sleep_for(std::chrono::seconds(5));
 	std::string pwd(getcwd(NULL, 0));
 	parse_request();
-	std::string fleod = "/htdocs";
+	std::string fleod = "/dist";
 	if(url == "/") {
 		url = pwd + fleod + url + "index.html";
 	} else {
@@ -56,7 +57,6 @@ int Http::response_requests() {
 					std::cout << headertype << "fail \n";
 					return -1;
 				}
-
 			} else {
 				res = get_txt_data();
 				resheader.set_header_cLength(res);
@@ -71,10 +71,15 @@ int Http::response_requests() {
 				}
 			}
 		} else {
+			 //cgi = 1
 			return -1;
 		}
 		return 1;
 	} else if("POST" == method) {
+		//cgi= 1
+
+
+
 		if(!file_existence()) {
 			std::cout << "file not found" << std::endl;
 			return -1;
@@ -102,10 +107,16 @@ int Http::response_requests() {
 
 int Http::response_without_parameters() {
 
+
 	return 0;
 }
 
-int Http::Response_with_parameters() {
+int Http::Response_with_parameters(int client, std::string res) {
+	
+	
+	
+
+
 	return 0;
 }
 
@@ -118,7 +129,6 @@ bool Http::file_existence() {
 	return 1;
 }
 
-
 int Http::catbinary() {
 	std::cout << "enter sendfile" << std::endl;
 
@@ -127,7 +137,6 @@ int Http::catbinary() {
 		printf("not found file\n");
 		return -1;
 	}
-
 
 	struct stat stat = {};
 	int ret = fstat(fd, &stat);
@@ -141,8 +150,6 @@ int Http::catbinary() {
 		printf("errrno is:%d", errno);
 		return -1;
 	}
-
-
 	std::cout << "enter sendfile over" << std::endl;
 	return 0;
 }
@@ -152,7 +159,6 @@ std::string Http::get_txt_data() {
 	if(!file) {
 		return "Error: could not open file.";
 	}
-
 	std::string content((std::istreambuf_iterator<char>(file)),
 						std::istreambuf_iterator<char>());
 	return content;
@@ -171,19 +177,15 @@ int Http::send_binary(std::string url) {
 	const size_t buffer_size = 8192; // 8KB buffer
 	char buffer[buffer_size];
 
-
-
 	size_t total_sent = 0;
 	while(total_sent < file_size) {
 		size_t remaining = file_size - total_sent;
 		size_t chunk_size = std::min(remaining, buffer_size);
-
 		file.read(buffer, chunk_size);
 		if(file.gcount() != chunk_size) {
 			std::cerr << "读取文件失败!" << std::endl;
 			return 1;
 		}
-
 		ssize_t sent_bytes = 0;
 		while(sent_bytes < chunk_size) {
 			ssize_t result = send(client, buffer + sent_bytes, chunk_size - sent_bytes, MSG_NOSIGNAL);
@@ -200,14 +202,9 @@ int Http::send_binary(std::string url) {
 			}
 			sent_bytes += result;
 		}
-
 		total_sent += sent_bytes;
 	}
-
 	std::cout << "成功发送 " << total_sent << " 字节的数据!" << std::endl;
-
-
-
 	return 0;
 }
 std::unordered_map<std::string, std::string> Http::parse_query_params(const std::string& query) {
