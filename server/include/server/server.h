@@ -10,23 +10,21 @@
 #include <unistd.h>
 #include <thpool/task.h>
 #include <queue>
+
 class Server {
 public:
-	Server() {
-
-
-	}
+	Server(int c);
 	int initserver(int _port);
 	int server_run(int lfd);
 	void server_accept(int curfd);
-
+	void read_ev(int curfd,int epfd,std::string res);
 private:
 	struct sockaddr_in servaddr;
 	int epfd;
-
+	//MyTask task;
 	std::queue<MyTask> tasks;
 	struct epoll_event evs[1024];
-	ThreadPool tp;
+	std::unique_ptr<ThreadPool> threadpool_;
 
 
 };

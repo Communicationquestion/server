@@ -1,49 +1,70 @@
-#ifndef THREADPOOL_H_
-#define THREADPOOL_H_
+/*
+ * @Author       : mark
+ * @Date         : 2020-06-15
+ * @copyleft Apache 2.0
+ */
 
-#include <pthread.h>
-#include <unistd.h>
+#ifndef THREADPOOL_H
+#define THREADPOOL_H
 
-
-
-class Task {
-public:
-    virtual bool operator==(const Task *task)=0;
-    virtual void run() = 0;
-    virtual ~Task() = default;
-};
-
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <thread>
+#include <functional>
+#include <cassert>
 class ThreadPool {
 public:
-    ThreadPool();
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ~ThreadPool();
-    bool canceljob(Task *work);
-    bool addjob(Task* work);
-    static void* run(void *p);
-private:
-    struct Data {
-    public:
-        Data(Task *data): m_data(data) {
-            next = nullptr;
+    explicit ThreadPool(size_t threadCount = 8) : pool_(std::make_shared<Pool>()) {
+        assert(threadCount > 0);
+        for(size_t i = 0; i < threadCount; i++) {
+            std::thread([pool = pool_] {
+                std::unique_lock<std::mutex> locker(pool->mtx);
+                while(true) {
+                    if(!pool->tasks.empty()) {
+                        auto task = std::move(pool->tasks.front());
+                        pool->tasks.pop();
+                        locker.unlock();
+                        task();
+                        locker.lock();
+                    } else if(pool->isClosed) break;
+                    else pool->cond.wait(locker);
+                }
+            }).detach();
         }
-        ~Data() {
-            if (next != nullptr) {
-                delete next;
-                next = nullptr;
+    }
+
+    ThreadPool() = default;
+
+    ThreadPool(ThreadPool&&) = default;
+
+    ~ThreadPool() {
+        if(static_cast<bool>(pool_)) {
+            {
+                std::lock_guard<std::mutex> locker(pool_->mtx);
+                pool_->isClosed = true;
             }
+            pool_->cond.notify_all();
         }
-        Task *m_data;
-        Data *next;
+    }
+
+    template<class F>
+    void AddTask(F&& task) {
+        {
+            std::lock_guard<std::mutex> locker(pool_->mtx);
+            pool_->tasks.emplace(std::forward<F>(task));
+        }
+        pool_->cond.notify_one();
+    }
+private:
+    struct Pool {
+        std::mutex mtx;
+        std::condition_variable cond;
+        bool isClosed;
+        std::queue<std::function<void()>> tasks;
     };
-    Data *m_head;
-    Data *m_tail;
-    pthread_mutex_t m_mutex;
-    pthread_cond_t m_cond;
-    int m_num;
-    pthread_t *m_pids;
-    bool m_run;
+    std::shared_ptr<Pool> pool_;
 };
 
-#endif
+
+#endif //THREADPOOL_H

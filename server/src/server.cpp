@@ -14,6 +14,10 @@
 
 #include <thpool/threadpool.h>
  
+Server::Server(int c) :threadpool_(new ThreadPool(c)) {
+
+};
+
 int Server::initserver(int _port) {
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0) {
@@ -55,6 +59,14 @@ void Server::server_accept(int curfd) {
 	}
 
 }
+
+void Server::read_ev(int curfd, int epfd, std::string res) {
+	MyTask _task(curfd, epfd, res);
+	
+	_task.run();
+	return;
+}
+
 int Server::server_run(int lfd) {
 	epfd = epoll_create(100);
 	if(epfd == -1) {
@@ -95,28 +107,21 @@ int Server::server_run(int lfd) {
 					continue;
 				}
 				std::string str(buffer);
-				MyTask _task(curfd, epfd, str);
-				//std::cout << "Server str \n" << str << std::endl;	
 			
-				_task.run();
-
-	
+				//std::cout << "Server str \n" << str << std::endl;	
 				
+				
+				//std::bind(&WebServer::OnRead_, this, client)
+				threadpool_->AddTask(std::bind( & Server::read_ev, this, curfd, epfd, str));		
 			}
-
-
 		}
-
-		
-
-
 	}
 	//futures.push_back(std::move(future));
 	//tp.join();
 }
 
 int main() {
-	Server server{};
+	Server server(8);
 	int serverfd = server.initserver(80);
 	server.server_run(serverfd);
 	return 0;
